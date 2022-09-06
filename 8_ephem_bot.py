@@ -13,45 +13,47 @@
 
 """
 import logging
-
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
+from settings import API_KEY
+import ephem
+from ephem import *
+from datetime import *
 
-logging.basicConfig(format='%(name)s - %(levelname)s - %(message)s',
-                    level=logging.INFO,
-                    filename='bot.log')
+logging.basicConfig(filename='bot.log', level=logging.INFO)
 
 
-PROXY = {
-    'proxy_url': 'socks5://t1.learn.python.ru:1080',
-    'urllib3_proxy_kwargs': {
-        'username': 'learn',
-        'password': 'python'
+def planet_info_answer(update, context):
+    planets = {
+        'Mercury': ephem.Mercury(),
+        'Venus': ephem.Venus(),
+        'Mars': ephem.Mars(),
+        'Jupiter': ephem.Jupiter(),
+        'Saturn': ephem.Saturn(),
+        'Uranus': ephem.Uranus(),
+        'Neptune': ephem.Neptune()
     }
-}
-
-
-def greet_user(update, context):
-    text = 'Вызван /start'
-    print(text)
-    update.message.reply_text(text)
-
-
-def talk_to_me(update, context):
     user_text = update.message.text
-    print(user_text)
-    update.message.reply_text(text)
+    user_planet = user_text.split(' ')[1]
+    if user_planet in planets.keys():
+        planet_data = planets.get(user_planet)
+        planet_data.compute(datetime.now(tz=None))
+        planet_position = constellation(planet_data)
+        return update.message.reply_text(f'В данный момент планета {user_planet} находится в созвездии {planet_position}')
+    else:
+        return update.message.reply_text('Уточните имя планеты на английском')
 
 
 def main():
-    mybot = Updater("КЛЮЧ, КОТОРЫЙ НАМ ВЫДАЛ BotFather", request_kwargs=PROXY, use_context=True)
+    my_bot = Updater(API_KEY, use_context=True)
 
-    dp = mybot.dispatcher
-    dp.add_handler(CommandHandler("start", greet_user))
-    dp.add_handler(MessageHandler(Filters.text, talk_to_me))
+    dp = my_bot.dispatcher
+    dp.add_handler(CommandHandler('planet', planet_info_answer))
 
-    mybot.start_polling()
-    mybot.idle()
+    logging.info("Бот стартовал")
+    my_bot.start_polling()
+    my_bot.idle()
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
+
